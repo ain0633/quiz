@@ -156,16 +156,6 @@
                 opacity: 0;
             }
         }
-
-        /* 윤동주 이미지 관련 스타일 제거 */
-        /* .yoon-dong-ju-image {
-            width: 150px;
-            height: auto;
-            margin-top: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 3px solid #000;
-            border-radius: 0.75rem;
-        } */
     </style>
 </head>
 <body>
@@ -178,7 +168,6 @@
                     윤동주 시인의 시적 세계관을<br>
                     관통하는 정서는 '0000'이다.
                 </p>
-                <!-- 윤동주 시인 이미지 태그를 제거했습니다. -->
                 <input type="text" id="answer-input" class="input-field" placeholder="정답을 입력하세요">
                 <button id="submit-button" class="submit-button">정답 확인 GO!</button>
             </div>
@@ -188,8 +177,9 @@
             <div class="result-message text-green-600">🎉 정답입니다! 축하합니다! 🎉</div>
             <p class="product-info">
                 상품 수령 방법:<br>
-                정답을 확인하신 후, 내를 건너서 숲으로 도서관 2층 시문학자료실로 오셔서 상품을 수령해 가세요!
+                정답을 확인하신 후, '내를 건너서 숲으로 도서관' 2층 시문학자료실로 오셔서 상품을 수령해 가세요!
             </p>
+            <p id="stock-info" class="text-lg font-semibold mt-4"></p>
         </div>
 
         <div id="incorrect-screen" class="hidden">
@@ -208,14 +198,20 @@
         const correctScreen = document.getElementById('correct-screen');
         const incorrectScreen = document.getElementById('incorrect-screen');
         const fireworksContainer = document.getElementById('fireworks-container');
+        const stockInfoElement = document.getElementById('stock-info');
 
         const correctAnswer = '부끄러움';
+        // --- 재고 수량을 여기에 수동으로 입력해주세요! ---
+        // 구글 시트의 '남은 수량'을 확인하여 이 값을 직접 업데이트해야 합니다.
+        let currentStock = 50; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
+        // ----------------------------------------------------
 
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
             if (userAnswer === correctAnswer) {
                 showCorrectScreen();
                 launchFireworks();
+                updateStockDisplay(); // 재고 정보 표시 함수 호출
             } else {
                 showIncorrectScreen();
             }
@@ -244,6 +240,17 @@
             incorrectScreen.classList.add('hidden');
             fireworksContainer.classList.add('hidden');
             fireworksContainer.innerHTML = ''; // 폭죽 제거
+        }
+
+        function updateStockDisplay() {
+            if (currentStock > 0) {
+                stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
+                // 필요하다면 상품 수령 시 재고를 감소시키는 로직을 여기에 추가할 수 있습니다.
+                // currentStock--; // 이 부분은 실제 재고 관리 시스템이 아니므로 주석 처리합니다.
+            } else {
+                stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
+                stockInfoElement.classList.add('text-red-500'); // 소진 시 텍스트 색상 변경
+            }
         }
 
         function launchFireworks() {
