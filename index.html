@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>윤동주 시인 퀴즈 이벤트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #00FF99; /* 이미지 배경색과 유사하게 설정 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* 폭죽 효과를 위해 오버플로우 숨김 */
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 1.5rem; /* 둥근 모서리 */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border: 5px solid #000; /* 검은색 테두리 추가 */
+        }
+        .header {
+            background-color: #000;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px; /* 완전한 둥근 모서리 */
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+            font-size: 1.25rem;
+            transform: rotate(-5deg); /* 이미지 헤더와 유사하게 기울기 */
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+        }
+        .question-box {
+            border: 5px solid #000;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            position: relative;
+            background-color: #fff;
+        }
+        .hint-box {
+            background-color: #FF0000; /* 힌트 박스 색상 */
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            transform: rotate(3deg); /* 이미지 힌트와 유사하게 기울기 */
+            border: 2px solid #000;
+        }
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+        .input-field {
+            border: 3px solid #000;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            width: calc(100% - 6px); /* 테두리 두께 고려 */
+            font-size: 1.25rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-sizing: border-box;
+        }
+        .submit-button {
+            background-color: #FF0000; /* 제출 버튼 색상 */
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: 3px solid #000;
+            box-shadow: 5px 5px 0px #000; /* 그림자 효과 */
+            display: inline-block;
+            text-decoration: none; /* 링크 스타일 제거 */
+        }
+        .submit-button:hover {
+            background-color: #CC0000;
+        }
+        .result-message {
+            font-size: 1.75rem;
+            font-weight: bold;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .product-info {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .retry-button {
+            background-color: #000; /* 재도전 버튼 색상 */
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: 3px solid #000;
+            box-shadow: 5px 5px 0px #000; /* 그림자 효과 */
+            display: inline-block;
+        }
+        .retry-button:hover {
+            background-color: #333;
+        }
+        .hidden {
+            display: none;
+        }
+
+        /* Fireworks styles */
+        .fireworks-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: firework-burst 1s forwards;
+        }
+        @keyframes firework-burst {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        /* 윤동주 이미지 관련 스타일 제거 */
+        /* .yoon-dong-ju-image {
+            width: 150px;
+            height: auto;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 3px solid #000;
+            border-radius: 0.75rem;
+        } */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">문제</div>
+        <div id="quiz-screen">
+            <div class="question-box">
+                <div class="hint-box">힌트: ㅂㄲㄹㅇ</div>
+                <p class="question-text">
+                    윤동주 시인의 시적 세계관을<br>
+                    관통하는 정서는 '0000'이다.
+                </p>
+                <!-- 윤동주 시인 이미지 태그를 제거했습니다. -->
+                <input type="text" id="answer-input" class="input-field" placeholder="정답을 입력하세요">
+                <button id="submit-button" class="submit-button">정답 확인 GO!</button>
+            </div>
+        </div>
+
+        <div id="correct-screen" class="hidden">
+            <div class="result-message text-green-600">🎉 정답입니다! 축하합니다! 🎉</div>
+            <p class="product-info">
+                상품 수령 방법:<br>
+                정답을 확인하신 후, 내를 건너서 숲으로 도서관 2층 시문학자료실로 오셔서 상품을 수령해 가세요!
+            </p>
+        </div>
+
+        <div id="incorrect-screen" class="hidden">
+            <div class="result-message text-red-600">아쉽지만 오답입니다. 다시 한번 도전해 볼까요?</div>
+            <button id="retry-button" class="retry-button">재도전!</button>
+        </div>
+    </div>
+
+    <div id="fireworks-container" class="fireworks-container hidden"></div>
+
+    <script>
+        const answerInput = document.getElementById('answer-input');
+        const submitButton = document.getElementById('submit-button');
+        const retryButton = document.getElementById('retry-button');
+        const quizScreen = document.getElementById('quiz-screen');
+        const correctScreen = document.getElementById('correct-screen');
+        const incorrectScreen = document.getElementById('incorrect-screen');
+        const fireworksContainer = document.getElementById('fireworks-container');
+
+        const correctAnswer = '부끄러움';
+
+        submitButton.addEventListener('click', () => {
+            const userAnswer = answerInput.value.trim();
+            if (userAnswer === correctAnswer) {
+                showCorrectScreen();
+                launchFireworks();
+            } else {
+                showIncorrectScreen();
+            }
+        });
+
+        retryButton.addEventListener('click', () => {
+            resetQuiz();
+        });
+
+        function showCorrectScreen() {
+            quizScreen.classList.add('hidden');
+            incorrectScreen.classList.add('hidden');
+            correctScreen.classList.remove('hidden');
+        }
+
+        function showIncorrectScreen() {
+            quizScreen.classList.add('hidden');
+            correctScreen.classList.add('hidden');
+            incorrectScreen.classList.remove('hidden');
+        }
+
+        function resetQuiz() {
+            answerInput.value = '';
+            quizScreen.classList.remove('hidden');
+            correctScreen.classList.add('hidden');
+            incorrectScreen.classList.add('hidden');
+            fireworksContainer.classList.add('hidden');
+            fireworksContainer.innerHTML = ''; // 폭죽 제거
+        }
+
+        function launchFireworks() {
+            fireworksContainer.classList.remove('hidden');
+            for (let i = 0; i < 30; i++) { // 30개의 폭죽 생성
+                createFirework();
+            }
+        }
+
+        function createFirework() {
+            const firework = document.createElement('div');
+            firework.classList.add('firework');
+            firework.style.left = Math.random() * 100 + 'vw';
+            firework.style.top = Math.random() * 100 + 'vh';
+            firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`; // 랜덤 색상
+            fireworksContainer.appendChild(firework);
+
+            // 애니메이션 종료 후 요소 제거
+            firework.addEventListener('animationend', () => {
+                firework.remove();
+            });
+        }
+    </script>
+</body>
+</html>
