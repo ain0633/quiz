@@ -126,6 +126,16 @@
         .hidden {
             display: none;
         }
+        /* 상단 및 하단 문구 스타일 */
+        .top-text, .bottom-text {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+        .bottom-text {
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
 
         /* Fireworks styles */
         .fireworks-container {
@@ -160,6 +170,8 @@
 </head>
 <body>
     <div class="container">
+        <!-- 상단 문구 추가 -->
+        <p class="top-text">2025년 시문학자료실 8-10월 북큐레이션 연계 퀴즈 이벤트</p>
         <div class="header">문제</div>
         <div id="quiz-screen">
             <div class="question-box">
@@ -177,7 +189,8 @@
             <div class="result-message text-green-600">🎉 정답입니다! 축하합니다! 🎉</div>
             <p class="product-info">
                 상품 수령 방법:<br>
-                정답을 확인하신 후, '내를 건너서 숲으로 도서관' 2층 시문학자료실로 오셔서 상품을 수령해 가세요!
+                <!-- 정답 멘트 수정 -->
+                정답을 확인하신 후, '내를 건너서 숲으로 도서관' 2층 시문학자료실로 오셔서 직원에게 해당화면을 보여준 후 상품을 수령해 가세요!
             </p>
             <p id="stock-info" class="text-lg font-semibold mt-4"></p>
         </div>
@@ -186,11 +199,24 @@
             <div class="result-message text-red-600">아쉽지만 오답입니다. 다시 한번 도전해 볼까요?</div>
             <button id="retry-button" class="retry-button">재도전!</button>
         </div>
+        
+        <!-- 총 참여자 수 표시 (관리자용) -->
+        <div id="participant-count-display" class="mt-4 text-sm text-gray-600">
+            Firebase 로딩 중...
+        </div>
+        <!-- 하단 문구 추가 -->
+        <p class="bottom-text">2025년 문학상주작가 지원사업</p>
     </div>
 
     <div id="fireworks-container" class="fireworks-container hidden"></div>
 
-    <script>
+    <script type="module">
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM elements
         const answerInput = document.getElementById('answer-input');
         const submitButton = document.getElementById('submit-button');
         const retryButton = document.getElementById('retry-button');
@@ -199,20 +225,116 @@
         const incorrectScreen = document.getElementById('incorrect-screen');
         const fireworksContainer = document.getElementById('fireworks-container');
         const stockInfoElement = document.getElementById('stock-info');
+        const participantCountDisplay = document.getElementById('participant-count-display');
 
         const correctAnswer = '부끄러움';
         // --- 재고 수량을 여기에 수동으로 입력해주세요! ---
         // 구글 시트의 '남은 수량'을 확인하여 이 값을 직접 업데이트해야 합니다.
-        let currentStock = 200
-        ; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
+        let currentStock = 50; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
         // ----------------------------------------------------
 
+        // Firebase variables
+        let db;
+        let auth;
+        let userId;
+        let isAuthReady = false; // Firebase 인증 준비 상태 플래그
+
+        // Firebase 설정 및 초기화
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // 인증 상태 변화 감지 및 초기화
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    console.log("Firebase 인증 준비 완료. 사용자 ID:", userId);
+                    // 인증 완료 후 참여자 수 불러오기
+                    fetchParticipantCount();
+                } else {
+                    try {
+                        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase 인증 오류:", error);
+                        participantCountDisplay.textContent = '참여자 수 로드 실패 (인증 오류)';
+                    }
+                }
+            });
+        } else {
+            console.error("Firebase 설정 정보가 없습니다.");
+            participantCountDisplay.textContent = '참여자 수 로드 실패 (설정 오류)';
+        }
+
+        // Firestore 문서 참조 함수
+        const getParticipantCountDocRef = () => {
+            if (!db) return null;
+            // 공개 데이터이므로 users/{userId} 대신 public/data 사용
+            return doc(db, `artifacts/${appId}/public/data/quizParticipants`, 'totalCount');
+        };
+
+        // 참여자 수 증가 함수
+        async function incrementParticipantCount() {
+            if (!isAuthReady || !db) {
+                console.warn("Firebase 준비되지 않아 참여자 수를 증가시킬 수 없습니다.");
+                return;
+            }
+            const docRef = getParticipantCountDocRef();
+            if (!docRef) return;
+
+            try {
+                // 문서가 없으면 생성하고, 있으면 1 증가
+                await setDoc(docRef, { count: increment(1) }, { merge: true });
+                console.log("참여자 수 성공적으로 증가!");
+                // 증가 후 최신 참여자 수 다시 불러오기
+                fetchParticipantCount();
+            } catch (e) {
+                console.error("참여자 수 증가 중 오류 발생: ", e);
+            }
+        }
+
+        // 참여자 수 불러와서 표시하는 함수
+        async function fetchParticipantCount() {
+            if (!isAuthReady || !db) {
+                console.warn("Firebase 준비되지 않아 참여자 수를 불러올 수 없습니다.");
+                return;
+            }
+            const docRef = getParticipantCountDocRef();
+            if (!docRef) return;
+
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const count = docSnap.data().count;
+                    participantCountDisplay.textContent = `총 참여자 수: ${count}명`;
+                } else {
+                    // 문서가 없으면 초기값 0으로 설정
+                    await setDoc(docRef, { count: 0 });
+                    participantCountDisplay.textContent = `총 참여자 수: 0명`;
+                }
+            } catch (e) {
+                console.error("참여자 수 불러오는 중 오류 발생: ", e);
+                participantCountDisplay.textContent = `총 참여자 수: 로드 오류`;
+            }
+        }
+
+        // 이벤트 리스너
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
             if (userAnswer === correctAnswer) {
                 showCorrectScreen();
                 launchFireworks();
-                updateStockDisplay(); // 재고 정보 표시 함수 호출
+                updateStockDisplay();
+                incrementParticipantCount(); // 정답 시 참여자 수 증가
             } else {
                 showIncorrectScreen();
             }
@@ -222,6 +344,7 @@
             resetQuiz();
         });
 
+        // 화면 전환 함수
         function showCorrectScreen() {
             quizScreen.classList.add('hidden');
             incorrectScreen.classList.add('hidden');
@@ -243,20 +366,20 @@
             fireworksContainer.innerHTML = ''; // 폭죽 제거
         }
 
+        // 재고 표시 함수
         function updateStockDisplay() {
             if (currentStock > 0) {
                 stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
-                // 필요하다면 상품 수령 시 재고를 감소시키는 로직을 여기에 추가할 수 있습니다.
-                // currentStock--; // 이 부분은 실제 재고 관리 시스템이 아니므로 주석 처리합니다.
             } else {
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
-                stockInfoElement.classList.add('text-red-500'); // 소진 시 텍스트 색상 변경
+                stockInfoElement.classList.add('text-red-500');
             }
         }
 
+        // 폭죽 효과 함수
         function launchFireworks() {
             fireworksContainer.classList.remove('hidden');
-            for (let i = 0; i < 30; i++) { // 30개의 폭죽 생성
+            for (let i = 0; i < 30; i++) {
                 createFirework();
             }
         }
@@ -266,10 +389,9 @@
             firework.classList.add('firework');
             firework.style.left = Math.random() * 100 + 'vw';
             firework.style.top = Math.random() * 100 + 'vh';
-            firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`; // 랜덤 색상
+            firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
             fireworksContainer.appendChild(firework);
 
-            // 애니메이션 종료 후 요소 제거
             firework.addEventListener('animationend', () => {
                 firework.remove();
             });
@@ -277,6 +399,3 @@
     </script>
 </body>
 </html>
-
-
-
