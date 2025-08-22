@@ -166,9 +166,45 @@
                 opacity: 0;
             }
         }
+        /* 이벤트 안내 모달 스타일 */
+        #announcement-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            text-align: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            border: 5px solid #000;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 400px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
     </style>
 </head>
 <body>
+    <!-- 이벤트 안내 모달 -->
+    <div id="announcement-modal" class="hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">이벤트 시작 안내</h2>
+            <p class="text-lg mb-4">
+                이벤트는 <strong class="text-red-600">2025년 9월 9일 오전 9시</strong>에 시작됩니다.
+            </p>
+            <p>
+                많은 관심 부탁드립니다.
+            </p>
+        </div>
+    </div>
+
     <div class="container">
         <!-- 상단 문구 추가 -->
         <p class="top-text">2025년 시문학자료실 8-10월 북큐레이션 연계 퀴즈 이벤트</p>
@@ -199,8 +235,6 @@
             <button id="retry-button" class="retry-button">재도전!</button>
         </div>
         
-        <!-- Firebase 기능 제거로 인해 총 참여자 수 표시 섹션 제거 -->
-        
         <!-- 하단 문구 추가 -->
         <p class="bottom-text">2025년 문학상주작가 지원사업</p>
     </div>
@@ -208,7 +242,20 @@
     <div id="fireworks-container" class="fireworks-container hidden"></div>
 
     <script>
-        // Firebase 관련 스크립트 제거 (참여자 수 기록 기능)
+        // 이벤트 시작 시간 설정 (2025년 9월 9일 오전 9시)
+        const eventStartDate = new Date('2025-09-09T09:00:00');
+        const now = new Date();
+        const modal = document.getElementById('announcement-modal');
+        const mainContent = document.querySelector('.container');
+        
+        // 현재 시간이 이벤트 시작 시간보다 이전이면 모달을 보여주고 메인 컨텐츠를 숨김
+        if (now < eventStartDate) {
+            modal.classList.remove('hidden');
+            mainContent.classList.add('hidden');
+        } else {
+            modal.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
 
         const answerInput = document.getElementById('answer-input');
         const submitButton = document.getElementById('submit-button');
@@ -232,7 +279,6 @@
                 showCorrectScreen();
                 launchFireworks();
                 updateStockDisplay();
-                // 참여자 수 증가 기능 제거
             } else {
                 showIncorrectScreen();
             }
