@@ -166,6 +166,12 @@
                 opacity: 0;
             }
         }
+        #user-info {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 1rem;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -202,11 +208,26 @@
         
         <!-- 하단 문구 추가 -->
         <p class="bottom-text">2025년 문학상주작가 지원사업</p>
+
+        <!-- 사용자 ID 정보 표시 -->
+        <div id="user-info"></div>
     </div>
 
     <div id="fireworks-container" class="fireworks-container hidden"></div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // setLogLevel('debug'); // 디버그 로그 활성화
+
+        // Canvas 환경에서 제공하는 전역 변수 초기화
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
         const answerInput = document.getElementById('answer-input');
         const submitButton = document.getElementById('submit-button');
         const retryButton = document.getElementById('retry-button');
@@ -215,36 +236,100 @@
         const incorrectScreen = document.getElementById('incorrect-screen');
         const fireworksContainer = document.getElementById('fireworks-container');
         const stockInfoElement = document.getElementById('stock-info');
-
+        const userInfoElement = document.getElementById('user-info');
+        
         const correctAnswer = '부끄러움';
-        // --- 재고 수량을 여기에 수동으로 입력해주세요! ---
-        // 구글 시트의 '남은 수량'을 확인하여 이 값을 직접 업데이트해야 합니다.
-        let currentStock = 113; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
-        // ----------------------------------------------------
+
+        let db, auth;
+        let isAuthReady = false;
+        let userId;
+
+        // Firebase 초기화 및 인증
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            // 인증 상태 변경 감지
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    userInfoElement.textContent = `User ID: ${userId}`;
+                    console.log("Firebase 인증 성공, 사용자 ID:", userId);
+                    
+                    // 재고 정보 실시간 감지 시작
+                    startStockListener();
+                } else {
+                    // 인증 토큰이 없으면 익명 로그인
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase 인증 실패:", error);
+                        userInfoElement.textContent = "인증 오류 발생";
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Firebase 초기화 오류:", error);
+        }
+
+        // 재고 정보를 Firestore에서 실시간으로 가져오는 함수
+        function startStockListener() {
+            if (!db || !isAuthReady) {
+                console.log("Firestore 또는 인증이 준비되지 않았습니다. 재고 감지를 시작할 수 없습니다.");
+                return;
+            }
+            // Firestore 문서 경로: quiz_stock/stock_count
+            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
+            
+            onSnapshot(stockDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const currentStock = docSnap.data().stock;
+                    updateStockDisplay(currentStock);
+                    console.log("재고 정보 업데이트:", currentStock);
+                } else {
+                    // 문서가 없으면 초기 재고를 설정
+                    console.warn("재고 문서가 존재하지 않습니다. 초기 재고를 설정합니다.");
+                    runTransaction(db, async (transaction) => {
+                        transaction.set(stockDocRef, { stock: 113 });
+                    }).catch(error => {
+                        console.error("초기 재고 설정 중 오류 발생:", error);
+                    });
+                }
+            }, (error) => {
+                console.error("재고 정보 감지 중 오류 발생:", error);
+            });
+        }
 
         // Tone.js를 사용하여 팡파르 소리를 재생하는 함수
         async function playFanfare() {
-            // Tone.js가 초기화될 때까지 기다립니다.
-            await Tone.start();
-            // 팡파르 소리를 위한 PolySynth 인스턴스를 생성합니다.
-            const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-            
-            // 팡파르를 위한 코드를 정의합니다. (C5, E5, G5)
-            const notes = ["C5", "E5", "G5"];
-            
-            // 0.2초 간격으로 코드를 재생합니다.
-            synth.triggerAttackRelease(notes, "8n");
+            try {
+                // Tone.js가 초기화될 때까지 기다립니다.
+                await Tone.start();
+                // 팡파르 소리를 위한 PolySynth 인스턴스를 생성합니다.
+                const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                
+                // 팡파르를 위한 코드를 정의합니다. (C5, E5, G5)
+                const notes = ["C5", "E5", "G5"];
+                
+                // 0.2초 간격으로 코드를 재생합니다.
+                synth.triggerAttackRelease(notes, "8n");
+            } catch (error) {
+                console.error("팡파르 소리 재생 중 오류 발생:", error);
+            }
         }
 
         // 이벤트 리스너
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
             if (userAnswer === correctAnswer) {
-                // 정답을 맞혔을 때 팡파르 소리를 재생합니다.
-                playFanfare();
-                showCorrectScreen();
-                launchFireworks();
-                updateStockDisplay();
+                // 정답일 경우 재고 차감 트랜잭션 실행
+                handleCorrectAnswer();
             } else {
                 showIncorrectScreen();
             }
@@ -254,6 +339,37 @@
             resetQuiz();
         });
 
+        // 정답 처리 및 재고 차감 함수
+        async function handleCorrectAnswer() {
+            if (!db) {
+                console.error("Firestore가 초기화되지 않았습니다.");
+                return;
+            }
+            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const stockDoc = await transaction.get(stockDocRef);
+                    if (!stockDoc.exists()) {
+                        throw new Error("재고 문서가 존재하지 않습니다! Firestore 콘솔에서 'quiz_stock/stock_count' 문서를 생성해 주세요.");
+                    }
+                    const newStock = stockDoc.data().stock - 1;
+                    if (newStock >= 0) {
+                        transaction.update(stockDocRef, { stock: newStock });
+                        playFanfare();
+                        showCorrectScreen();
+                        launchFireworks();
+                    } else {
+                        // 재고가 0개 미만이면 상품 소진 메시지 표시
+                        showCorrectScreen();
+                        console.log("상품이 모두 소진되었습니다.");
+                    }
+                });
+            } catch (error) {
+                console.error("재고 차감 트랜잭션 실패:", error);
+            }
+        }
+        
         // 화면 전환 함수
         function showCorrectScreen() {
             quizScreen.classList.add('hidden');
@@ -273,13 +389,14 @@
             correctScreen.classList.add('hidden');
             incorrectScreen.classList.add('hidden');
             fireworksContainer.classList.add('hidden');
-            fireworksContainer.innerHTML = ''; // 폭죽 제거
+            fireworksContainer.innerHTML = '';
         }
 
         // 재고 표시 함수
-        function updateStockDisplay() {
+        function updateStockDisplay(currentStock) {
             if (currentStock > 0) {
                 stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
+                stockInfoElement.classList.remove('text-red-500');
             } else {
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
@@ -309,7 +426,3 @@
     </script>
 </body>
 </html>
-
-
-
-
