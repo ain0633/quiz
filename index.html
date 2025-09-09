@@ -264,8 +264,8 @@
         const adminUpdateButton = document.getElementById('admin-update-button');
         
         const correctAnswer = '부끄러움';
-        const adminPassword = 'admin'; // 여기에 관리자 비밀번호를 설정하세요
-        let currentStock = 107; // 여기에 초기 재고 수량을 입력하세요
+        const adminPassword = 'admin';
+        let currentStock = 107;
 
         // 초기에 재고 수량 표시
         updateStockDisplay();
@@ -288,7 +288,7 @@
             if (userAnswer === correctAnswer) {
                 handleCorrectAnswer();
             } else if (userAnswer === adminPassword) {
-                showAdminScreen();
+                showAdminLoginScreen();
             } else {
                 showIncorrectScreen();
             }
@@ -351,6 +351,15 @@
             incorrectScreen.classList.remove('hidden');
         }
 
+        function showAdminLoginScreen() {
+            quizScreen.classList.add('hidden');
+            correctScreen.classList.add('hidden');
+            incorrectScreen.classList.add('hidden');
+            adminScreen.classList.add('hidden');
+            adminLoginScreen.classList.remove('hidden');
+            headerTextElement.textContent = "관리자 로그인";
+        }
+
         function showAdminScreen() {
             quizScreen.classList.add('hidden');
             correctScreen.classList.add('hidden');
@@ -375,13 +384,13 @@
             if (currentStock > 0) {
                 stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
                 stockInfoElement.classList.remove('text-red-500');
-                correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`; // 추가된 부분
+                correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
                 adminStockDisplay.textContent = `현재 재고 수량: ${currentStock}개`;
             } else {
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
-                correctStockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.'; // 추가된 부분
-                correctStockInfoElement.classList.add('text-red-500'); // 추가된 부분
+                correctStockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
+                correctStockInfoElement.classList.add('text-red-500');
                 adminStockDisplay.textContent = '현재 재고 수량: 0개 (소진)';
             }
         }
