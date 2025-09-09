@@ -284,8 +284,8 @@
                 console.log("Firestore 또는 인증이 준비되지 않았습니다. 재고 감지를 시작할 수 없습니다.");
                 return;
             }
-            // Firestore 문서 경로: /artifacts/{appId}/public/data/quiz_stock/stock_count
-            const stockDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_stock', 'stock_count');
+            // 수정된 Firestore 문서 경로
+            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
             
             onSnapshot(stockDocRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -293,7 +293,6 @@
                     updateStockDisplay(currentStock);
                     console.log("재고 정보 업데이트:", currentStock);
                 } else {
-                    // 문서가 없으면 초기 재고를 설정
                     console.warn("재고 문서가 존재하지 않습니다. 초기 재고를 설정합니다.");
                     runTransaction(db, async (transaction) => {
                         transaction.set(stockDocRef, { stock: 113 });
@@ -309,15 +308,9 @@
         // Tone.js를 사용하여 팡파르 소리를 재생하는 함수
         async function playFanfare() {
             try {
-                // Tone.js가 초기화될 때까지 기다립니다.
                 await Tone.start();
-                // 팡파르 소리를 위한 PolySynth 인스턴스를 생성합니다.
                 const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-                
-                // 팡파르를 위한 코드를 정의합니다. (C5, E5, G5)
                 const notes = ["C5", "E5", "G5"];
-                
-                // 0.2초 간격으로 코드를 재생합니다.
                 synth.triggerAttackRelease(notes, "8n");
             } catch (error) {
                 console.error("팡파르 소리 재생 중 오류 발생:", error);
@@ -328,7 +321,6 @@
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
             if (userAnswer === correctAnswer) {
-                // 정답일 경우 재고 차감 트랜잭션 실행
                 handleCorrectAnswer();
             } else {
                 showIncorrectScreen();
@@ -345,7 +337,8 @@
                 console.error("Firestore가 초기화되지 않았습니다.");
                 return;
             }
-            const stockDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_stock', 'stock_count');
+            // 수정된 Firestore 문서 경로
+            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -360,7 +353,6 @@
                         showCorrectScreen();
                         launchFireworks();
                     } else {
-                        // 재고가 0개 미만이면 상품 소진 메시지 표시
                         showCorrectScreen();
                         console.log("상품이 모두 소진되었습니다.");
                     }
