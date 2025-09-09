@@ -211,6 +211,12 @@
         .modal-button:hover {
             background-color: #CC0000;
         }
+        #user-info, #admin-info {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 1rem;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -258,14 +264,28 @@
                 <button id="admin-modal-button" class="modal-button">확인</button>
             </div>
         </div>
-
+        
         <!-- 하단 문구 -->
         <p class="bottom-text">2025년 문학상주작가 지원사업</p>
+        <p id="user-info" class="text-xs mt-4"></p>
     </div>
 
     <div id="fireworks-container" class="fireworks-container hidden"></div>
 
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase 설정 (환경 변수 사용)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
         const answerInput = document.getElementById('answer-input');
         const submitButton = document.getElementById('submit-button');
         const retryButton = document.getElementById('retry-button');
@@ -276,20 +296,51 @@
         const stockInfoElement = document.getElementById('stock-info');
         const correctStockInfoElement = document.getElementById('correct-stock-info');
         const headerTextElement = document.getElementById('header-text');
+        const userInfoElement = document.getElementById('user-info');
 
         // 관리자 모달 관련 요소
         const adminModal = document.getElementById('admin-modal');
         const adminModalInput = document.getElementById('admin-modal-input');
         const adminModalButton = document.getElementById('admin-modal-button');
         
-        let currentStock = 103;
         const correctAnswer = '부끄러움';
         const adminPassword = 'admin';
 
-        // 페이지 로드 시 초기 재고 수량 표시
-        window.onload = () => {
-            updateStockDisplay();
-        };
+        let currentStock = 103;
+        const stockDocRef = doc(db, `/artifacts/${appId}/public/data/stock/main`);
+
+        // Firebase 인증
+        async function authenticate() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                const userId = auth.currentUser?.uid || "anonymous";
+                userInfoElement.textContent = `User ID: ${userId}`;
+                console.log("Firebase 인증 성공");
+                
+                // Firestore 데이터 실시간 리스너 설정
+                onSnapshot(stockDocRef, (docSnapshot) => {
+                    if (docSnapshot.exists()) {
+                        currentStock = docSnapshot.data().quantity;
+                    } else {
+                        // 문서가 없으면 초기값으로 생성
+                        setDoc(stockDocRef, { quantity: 103 });
+                        currentStock = 103;
+                    }
+                    updateStockDisplay();
+                }, (error) => {
+                    console.error("Firestore 데이터 수신 중 오류 발생:", error);
+                });
+            } catch (error) {
+                console.error("Firebase 인증 오류:", error);
+            }
+        }
+
+        // 페이지 로드 시 인증 시작
+        window.onload = authenticate;
 
         // Tone.js를 사용하여 팡파르 소리를 재생하는 함수
         async function playFanfare() {
@@ -300,14 +351,13 @@
                 synth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
                 synth.triggerAttackRelease(["C6", "E6", "G6"], "8n", now + 0.5);
             } catch (error) {
-                console.error("팡파르 소리 재생 중 오류 발생:", error);
+                console.error("팡파르 소리 재생 중 오류:", error);
             }
         }
 
         // 이벤트 리스너
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
-            // 관리자 비밀번호를 입력하면 재고 설정 모달 표시
             if (userAnswer === adminPassword) {
                 showAdminModal();
             } else if (userAnswer === correctAnswer) {
@@ -321,32 +371,40 @@
             resetQuiz();
         });
 
-        // 관리자 모달 버튼 이벤트
-        adminModalButton.addEventListener('click', () => {
+        // 관리자 모달 버튼 이벤트 (Firestore에 저장)
+        adminModalButton.addEventListener('click', async () => {
             const newStock = parseInt(adminModalInput.value, 10);
             if (!isNaN(newStock) && newStock >= 0) {
-                currentStock = newStock;
-                adminModalInput.value = '';
-                adminModal.classList.add('hidden'); // 모달 숨기기
-                updateStockDisplay(); // 재고 업데이트
-                resetQuiz(); // 퀴즈 화면으로 돌아가기
+                try {
+                    await setDoc(stockDocRef, { quantity: newStock });
+                    adminModalInput.value = '';
+                    adminModal.classList.add('hidden');
+                    resetQuiz();
+                } catch (error) {
+                    console.error("재고 업데이트 실패:", error);
+                    alert("재고 업데이트에 실패했습니다. 다시 시도해 주세요.");
+                }
             } else {
                 alert("유효한 재고 수량을 입력해주세요.");
             }
         });
 
-        // 정답 처리 및 재고 차감 함수
-        function handleCorrectAnswer() {
+        // 정답 처리 및 재고 차감 함수 (Firestore 업데이트)
+        async function handleCorrectAnswer() {
             if (currentStock > 0) {
-                // 재고가 차감되기 전 수량을 먼저 화면에 표시
-                correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
+                try {
+                    correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
 
-                currentStock--;
-                playFanfare();
-                showCorrectScreen();
-                launchFireworks();
-                // 퀴즈 화면에 표시되는 재고는 다음 사용자를 위해 업데이트됨
-                updateStockDisplay(); 
+                    await setDoc(stockDocRef, { quantity: currentStock - 1 });
+
+                    playFanfare();
+                    showCorrectScreen();
+                    launchFireworks();
+                } catch (error) {
+                    console.error("재고 차감 실패:", error);
+                    alert("재고 차감에 실패했습니다. 다시 시도해 주세요.");
+                    showIncorrectScreen();
+                }
             } else {
                 showCorrectScreen();
                 console.log("상품이 모두 소진되었습니다.");
@@ -391,6 +449,7 @@
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
             }
+            correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
         }
         
         // 폭죽 효과 함수
