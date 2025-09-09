@@ -210,6 +210,7 @@
                 도서관 2층 시문학자료실로 오셔서 직원에게 해당화면을 보여준 후 상품을 수령해 가세요!<br>
                 (1인 1일 1회 참여 가능하며, 상품 수령 시 회원증을 꼭 챙겨주세요!)
             </p>
+            <p id="correct-stock-info" class="text-lg font-semibold mt-4"></p>
         </div>
 
         <!-- 오답 화면 -->
@@ -249,6 +250,7 @@
         const incorrectScreen = document.getElementById('incorrect-screen');
         const fireworksContainer = document.getElementById('fireworks-container');
         const stockInfoElement = document.getElementById('stock-info');
+        const correctStockInfoElement = document.getElementById('correct-stock-info');
         const headerTextElement = document.getElementById('header-text');
 
         // 관리자 관련 요소
@@ -263,7 +265,7 @@
         
         const correctAnswer = '부끄러움';
         const adminPassword = 'admin'; // 여기에 관리자 비밀번호를 설정하세요
-        let currentStock = 113; // 여기에 초기 재고 수량을 입력하세요
+        let currentStock = 107; // 여기에 초기 재고 수량을 입력하세요
 
         // 초기에 재고 수량 표시
         updateStockDisplay();
@@ -373,10 +375,13 @@
             if (currentStock > 0) {
                 stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
                 stockInfoElement.classList.remove('text-red-500');
+                correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`; // 추가된 부분
                 adminStockDisplay.textContent = `현재 재고 수량: ${currentStock}개`;
             } else {
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
+                correctStockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.'; // 추가된 부분
+                correctStockInfoElement.classList.add('text-red-500'); // 추가된 부분
                 adminStockDisplay.textContent = '현재 재고 수량: 0개 (소진)';
             }
         }
