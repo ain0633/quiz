@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>윤동주 시인 퀴즈 이벤트</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
         body {
@@ -187,7 +188,7 @@
         <div id="correct-screen" class="hidden">
             <div class="result-message text-green-600">🎉 정답입니다! 축하합니다! 🎉</div>
             <p class="product-info">
-               상품 수령 방법:<br>
+                상품 수령 방법:<br>
                 도서관 2층 시문학자료실로 오셔서 직원에게 해당화면을 보여준 후 상품을 수령해 가세요!<br>
                 반짝이는 상품이 여러분을 기다리고 있답니다. (1인 1일 1회 참여 가능하며, 상품 수령 시 회원증을 꼭 챙겨주세요!)
             </p>
@@ -218,13 +219,29 @@
         const correctAnswer = '부끄러움';
         // --- 재고 수량을 여기에 수동으로 입력해주세요! ---
         // 구글 시트의 '남은 수량'을 확인하여 이 값을 직접 업데이트해야 합니다.
-        let currentStock = 109; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
+        let currentStock = 113; // 예시: 현재 남은 상품 수량 (수동 업데이트 필요)
         // ----------------------------------------------------
+
+        // Tone.js를 사용하여 팡파르 소리를 재생하는 함수
+        async function playFanfare() {
+            // Tone.js가 초기화될 때까지 기다립니다.
+            await Tone.start();
+            // 팡파르 소리를 위한 PolySynth 인스턴스를 생성합니다.
+            const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+            
+            // 팡파르를 위한 코드를 정의합니다. (C5, E5, G5)
+            const notes = ["C5", "E5", "G5"];
+            
+            // 0.2초 간격으로 코드를 재생합니다.
+            synth.triggerAttackRelease(notes, "8n");
+        }
 
         // 이벤트 리스너
         submitButton.addEventListener('click', () => {
             const userAnswer = answerInput.value.trim();
             if (userAnswer === correctAnswer) {
+                // 정답을 맞혔을 때 팡파르 소리를 재생합니다.
+                playFanfare();
                 showCorrectScreen();
                 launchFireworks();
                 updateStockDisplay();
@@ -292,5 +309,6 @@
     </script>
 </body>
 </html>
+
 
 
