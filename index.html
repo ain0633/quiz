@@ -315,6 +315,7 @@
         const correctAnswer = '부끄러움';
         const adminPasswordQuiz = 'admin';
         const adminPasswordCorrect = '동주';
+        const adminPasswordAdd = '추가';
         const INITIAL_STOCK = 103;
         const STOCK_KEY = 'yoon-dong-ju-stock';
         
@@ -376,6 +377,11 @@
                 } else {
                     showMessageModal("재고가 이미 모두 소진되었습니다.");
                 }
+            } else if (adminAnswer === adminPasswordAdd) {
+                currentStock++;
+                saveStock();
+                showMessageModal("재고가 성공적으로 추가되었습니다.");
+                resetQuiz();
             } else {
                 showMessageModal("올바른 관리자 코드를 입력해 주세요.");
             }
