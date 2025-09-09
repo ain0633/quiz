@@ -284,8 +284,8 @@
                 console.log("Firestore 또는 인증이 준비되지 않았습니다. 재고 감지를 시작할 수 없습니다.");
                 return;
             }
-            // Firestore 문서 경로: quiz_stock/stock_count
-            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
+            // Firestore 문서 경로: /artifacts/{appId}/public/data/quiz_stock/stock_count
+            const stockDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_stock', 'stock_count');
             
             onSnapshot(stockDocRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -345,7 +345,7 @@
                 console.error("Firestore가 초기화되지 않았습니다.");
                 return;
             }
-            const stockDocRef = doc(db, 'quiz_stock', 'stock_count');
+            const stockDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_stock', 'stock_count');
 
             try {
                 await runTransaction(db, async (transaction) => {
