@@ -286,25 +286,12 @@
 
         <!-- 하단 문구 -->
         <p class="bottom-text">2025년 문학상주작가 지원사업</p>
-        <p id="user-info" class="text-xs mt-4"></p>
     </div>
 
     <div id="fireworks-container" class="fireworks-container hidden"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // Constants and Element selection
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
         const answerInput = document.getElementById('answer-input');
         const submitButton = document.getElementById('submit-button');
         const retryButton = document.getElementById('retry-button');
@@ -315,7 +302,6 @@
         const stockInfoElement = document.getElementById('stock-info');
         const correctStockInfoElement = document.getElementById('correct-stock-info');
         const headerTextElement = document.getElementById('header-text');
-        const userInfoElement = document.getElementById('user-info');
         const adminModal = document.getElementById('admin-modal');
         const adminModalInput = document.getElementById('admin-modal-input');
         const adminModalButton = document.getElementById('admin-modal-button');
@@ -330,10 +316,10 @@
         const adminPasswordQuiz = 'admin';
         const adminPasswordCorrect = '동주';
         const INITIAL_STOCK = 103;
+        const STOCK_KEY = 'yoon-dong-ju-stock';
         
-        // Firestore setup
-        const stockDocRef = doc(db, `/artifacts/${appId}/public/data/stock/main`);
-        let currentStock = INITIAL_STOCK;
+        // Retrieve stock from local storage or set initial value
+        let currentStock = localStorage.getItem(STOCK_KEY) ? parseInt(localStorage.getItem(STOCK_KEY), 10) : INITIAL_STOCK;
 
         // Custom modal functions (better than `alert`)
         function showMessageModal(message) {
@@ -345,45 +331,10 @@
             messageModal.classList.add('hidden');
         });
 
-        // Firebase authentication and data listener
-        async function authenticateAndListen() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                const userId = auth.currentUser?.uid || "anonymous";
-                userInfoElement.textContent = `User ID: ${userId}`;
-                console.log("Firebase 인증 성공");
-                
-                // Real-time stock updates from Firestore
-                onSnapshot(stockDocRef, (docSnapshot) => {
-                    if (docSnapshot.exists()) {
-                        const data = docSnapshot.data();
-                        if (data && typeof data.quantity === 'number') {
-                            currentStock = data.quantity;
-                        } else {
-                            currentStock = INITIAL_STOCK;
-                            setDoc(stockDocRef, { quantity: currentStock });
-                        }
-                    } else {
-                        currentStock = INITIAL_STOCK;
-                        setDoc(stockDocRef, { quantity: currentStock });
-                    }
-                    updateStockDisplay();
-                }, (error) => {
-                    console.error("Firestore 데이터 수신 중 오류 발생:", error);
-                    showMessageModal("데이터 로딩 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
-                });
-            } catch (error) {
-                console.error("Firebase 인증 오류:", error);
-                showMessageModal("서비스 접속에 실패했습니다. 네트워크 연결을 확인해 주세요.");
-            }
+        // Save stock to local storage
+        function saveStock() {
+            localStorage.setItem(STOCK_KEY, currentStock);
         }
-        
-        // Initialize the app on window load
-        window.onload = authenticateAndListen;
 
         // Sound effect function
         async function playFanfare() {
@@ -414,18 +365,14 @@
             resetQuiz();
         });
 
-        adminButtonCorrect.addEventListener('click', async () => {
+        adminButtonCorrect.addEventListener('click', () => {
             const adminAnswer = adminInputCorrect.value.trim();
             if (adminAnswer === adminPasswordCorrect) {
                 if (currentStock > 0) {
-                    try {
-                        await setDoc(stockDocRef, { quantity: currentStock - 1 });
-                        showMessageModal("재고가 성공적으로 차감되었습니다.");
-                        resetQuiz();
-                    } catch (error) {
-                        console.error("재고 차감 실패:", error);
-                        showMessageModal("재고 차감에 실패했습니다. 잠시 후 다시 시도해 주세요.");
-                    }
+                    currentStock--;
+                    saveStock();
+                    showMessageModal("재고가 성공적으로 차감되었습니다.");
+                    resetQuiz();
                 } else {
                     showMessageModal("재고가 이미 모두 소진되었습니다.");
                 }
@@ -434,26 +381,22 @@
             }
         });
 
-        adminModalButton.addEventListener('click', async () => {
+        adminModalButton.addEventListener('click', () => {
             const newStock = parseInt(adminModalInput.value, 10);
             if (!isNaN(newStock) && newStock >= 0) {
-                try {
-                    await setDoc(stockDocRef, { quantity: newStock });
-                    adminModalInput.value = '';
-                    adminModal.classList.add('hidden');
-                    resetQuiz();
-                    showMessageModal("재고가 성공적으로 업데이트되었습니다.");
-                } catch (error) {
-                    console.error("재고 업데이트 실패:", error);
-                    showMessageModal("재고 업데이트에 실패했습니다. 다시 시도해 주세요.");
-                }
+                currentStock = newStock;
+                saveStock();
+                adminModalInput.value = '';
+                adminModal.classList.add('hidden');
+                resetQuiz();
+                showMessageModal("재고가 성공적으로 업데이트되었습니다.");
             } else {
                 showMessageModal("유효한 재고 수량을 입력해주세요.");
             }
         });
 
         // Function to handle correct answer
-        async function handleCorrectAnswer() {
+        function handleCorrectAnswer() {
             playFanfare();
             showCorrectScreen();
             launchFireworks();
@@ -488,6 +431,7 @@
             fireworksContainer.classList.add('hidden');
             fireworksContainer.innerHTML = '';
             headerTextElement.textContent = "문제";
+            updateStockDisplay();
         }
 
         // Function to update stock display
@@ -525,6 +469,9 @@
                 firework.remove();
             });
         }
+        
+        // Initial display on page load
+        updateStockDisplay();
     </script>
 </body>
 </html>
