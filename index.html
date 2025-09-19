@@ -309,7 +309,7 @@
         // Quiz & Admin logic
         const correctAnswer = '부끄러움';
         const adminPasswordQuiz = 'admin'; // 재고 설정 모달을 여는 관리자 코드
-        const INITIAL_STOCK = 10;
+        const INITIAL_STOCK = 19;
         const STOCK_KEY = 'yoon-dong-ju-stock';
         
         // Retrieve stock from local storage or set initial value
@@ -386,7 +386,8 @@
             incorrectScreen.classList.add('hidden');
             correctScreen.classList.remove('hidden');
             headerTextElement.textContent = "정답";
-            correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
+            // Correct screen also shows stock info
+            updateStockDisplay();
         }
 
         function showIncorrectScreen() {
@@ -413,19 +414,22 @@
 
         // Function to update stock display
         function updateStockDisplay() {
+            let stockMessage;
             if (currentStock > 10) {
-                stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
+                stockMessage = `현재 남은 상품 수량: ${currentStock}개`;
                 stockInfoElement.classList.remove('text-red-500');
+                correctStockInfoElement.classList.remove('text-red-500');
             } else if (currentStock > 0 && currentStock <= 10) {
-                stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개 (상품 소진 임박!)`;
+                stockMessage = '상품 소진 임박! (조기 소진될 수 있습니다.)';
                 stockInfoElement.classList.add('text-red-500');
+                correctStockInfoElement.classList.add('text-red-500');
             } else {
-                stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
+                stockMessage = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
+                correctStockInfoElement.classList.add('text-red-500');
             }
-            if (!correctScreen.classList.contains('hidden')) {
-                correctStockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
-            }
+            stockInfoElement.textContent = stockMessage;
+            correctStockInfoElement.textContent = stockMessage;
         }
         
         // Fireworks effects
@@ -455,7 +459,3 @@
     </script>
 </body>
 </html>
-
-
-
-
