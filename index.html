@@ -255,10 +255,7 @@
                 (1인 1일 1회 참여 가능하며, 상품 수령 시 회원증을 꼭 챙겨주세요!)
             </p>
             <p id="correct-stock-info" class="text-lg font-semibold mt-4"></p>
-            <div class="admin-input-group">
-                <input type="text" id="admin-input-correct" class="input-field mb-0" placeholder="재고 수정 코드">
-                <button id="admin-button-correct" class="submit-button mb-0 !py-2 !px-4 !text-base !shadow-md">수정</button>
-            </div>
+            <p class="text-sm text-gray-700 mt-2">※ 상품은 한정 수량으로, 조기 소진 시 수령이 어려울 수 있습니다.</p>
         </div>
 
         <!-- 오답 화면 -->
@@ -308,14 +305,10 @@
         const messageModal = document.getElementById('message-modal');
         const messageText = document.getElementById('message-text');
         const messageModalButton = document.getElementById('message-modal-button');
-        const adminInputCorrect = document.getElementById('admin-input-correct');
-        const adminButtonCorrect = document.getElementById('admin-button-correct');
         
         // Quiz & Admin logic
         const correctAnswer = '부끄러움';
-        const adminPasswordQuiz = 'admin';
-        const adminPasswordCorrect = '동주';
-        const adminPasswordAdd = '추가';
+        const adminPasswordQuiz = 'admin'; // 재고 설정 모달을 여는 관리자 코드
         const INITIAL_STOCK = 19;
         const STOCK_KEY = 'yoon-dong-ju-stock';
         
@@ -366,27 +359,6 @@
             resetQuiz();
         });
 
-        adminButtonCorrect.addEventListener('click', () => {
-            const adminAnswer = adminInputCorrect.value.trim();
-            if (adminAnswer === adminPasswordCorrect) {
-                if (currentStock > 0) {
-                    currentStock--;
-                    saveStock();
-                    showMessageModal("재고가 성공적으로 차감되었습니다.");
-                    resetQuiz();
-                } else {
-                    showMessageModal("재고가 이미 모두 소진되었습니다.");
-                }
-            } else if (adminAnswer === adminPasswordAdd) {
-                currentStock++;
-                saveStock();
-                showMessageModal("재고가 성공적으로 추가되었습니다.");
-                resetQuiz();
-            } else {
-                showMessageModal("올바른 관리자 코드를 입력해 주세요.");
-            }
-        });
-
         adminModalButton.addEventListener('click', () => {
             const newStock = parseInt(adminModalInput.value, 10);
             if (!isNaN(newStock) && newStock >= 0) {
@@ -430,7 +402,6 @@
 
         function resetQuiz() {
             answerInput.value = '';
-            adminInputCorrect.value = '';
             quizScreen.classList.remove('hidden');
             correctScreen.classList.add('hidden');
             incorrectScreen.classList.add('hidden');
@@ -442,9 +413,12 @@
 
         // Function to update stock display
         function updateStockDisplay() {
-            if (currentStock > 0) {
+            if (currentStock > 10) {
                 stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개`;
                 stockInfoElement.classList.remove('text-red-500');
+            } else if (currentStock > 0 && currentStock <= 10) {
+                stockInfoElement.textContent = `현재 남은 상품 수량: ${currentStock}개 (상품 소진 임박!)`;
+                stockInfoElement.classList.add('text-red-500');
             } else {
                 stockInfoElement.textContent = '아쉽게도 상품이 모두 소진되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
@@ -481,14 +455,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
