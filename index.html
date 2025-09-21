@@ -249,7 +249,7 @@
         <!-- 정답 화면 -->
         <div id="correct-screen" class="hidden">
             <div class="result-message text-green-600">🎉 정답입니다! 축하합니다! 🎉</div>
-            <p class="product-info">
+            <p id="product-info-text" class="product-info">
                 상품 수령 방법:<br>
                 도서관 2층 시문학자료실로 오셔서 직원에게 해당화면을 보여준 후 상품을 수령해 가세요!<br>
                 (1인 1일 1회 참여 가능하며, 상품 수령 시 회원증을 꼭 챙겨주세요!)
@@ -305,11 +305,12 @@
         const messageModal = document.getElementById('message-modal');
         const messageText = document.getElementById('message-text');
         const messageModalButton = document.getElementById('message-modal-button');
+        const productInfoText = document.getElementById('product-info-text');
         
         // Quiz & Admin logic
         const correctAnswer = '부끄러움';
         const adminPasswordQuiz = 'admin'; // 재고 설정 모달을 여는 관리자 코드
-        const INITIAL_STOCK = 10;
+        const INITIAL_STOCK = 4;
         const STOCK_KEY = 'yoon-dong-ju-stock';
         
         // Retrieve stock from local storage or set initial value
@@ -388,6 +389,13 @@
             headerTextElement.textContent = "정답";
             // Correct screen also shows stock info
             updateStockDisplay();
+
+            // Hide the product info if stock is 0
+            if (currentStock <= 0) {
+                productInfoText.classList.add('hidden');
+            } else {
+                productInfoText.classList.remove('hidden');
+            }
         }
 
         function showIncorrectScreen() {
@@ -424,7 +432,7 @@
                 stockInfoElement.classList.add('text-red-500');
                 correctStockInfoElement.classList.add('text-red-500');
             } else {
-                stockMessage = '아쉽게도 상품이 모두 소진되었습니다.';
+                stockMessage = '아쉽게도 상품이 모두 소진되어 이벤트가 마감되었습니다.';
                 stockInfoElement.classList.add('text-red-500');
                 correctStockInfoElement.classList.add('text-red-500');
             }
@@ -459,4 +467,3 @@
     </script>
 </body>
 </html>
-
